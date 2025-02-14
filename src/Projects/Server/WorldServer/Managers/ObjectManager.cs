@@ -358,35 +358,35 @@ namespace AuthServer.Game.Managers
 
         public void SaveChar(Character pChar)
         {
-            for (int i = 0; i < Manager.WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < Manager.WorldMgr.CharacterList.Count; i++)
             {
-                if (Manager.WorldMgr.CharaterList[i].Guid == pChar.Guid)
+                if (Manager.WorldMgr.CharacterList[i].Guid == pChar.Guid)
                 {
-                    Manager.WorldMgr.CharaterList[i] = pChar;
+                    Manager.WorldMgr.CharacterList[i] = pChar;
                     break;
                 }
             }
 
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharaterList));
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharacterList));
         }
 
         public void SavePositionToDB(Character pChar)
         {
-            for (int i = 0; i < Manager.WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < Manager.WorldMgr.CharacterList.Count; i++)
             {
-                if (Manager.WorldMgr.CharaterList[i].Guid == pChar.Guid)
+                if (Manager.WorldMgr.CharacterList[i].Guid == pChar.Guid)
                 {
-                    Manager.WorldMgr.CharaterList[i].Position = pChar.Position;
+                    Manager.WorldMgr.CharacterList[i].Position = pChar.Position;
                     break;
                 }
             }
 
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharaterList));
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharacterList));
         }
 
         public void SaveZoneToDB(Character pChar)
         {
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharaterList));
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharacterList));
         }
     }
 }

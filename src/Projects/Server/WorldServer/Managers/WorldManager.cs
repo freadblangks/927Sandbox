@@ -44,7 +44,7 @@ namespace AuthServer.Game.Managers
     public sealed class WorldManager : Singleton<WorldManager>
     {
         public List<Emote> EmoteList = new List<Emote>();
-        public List<Character> CharaterList = new List<Character>();
+        public List<Character> CharacterList = new List<Character>();
         public List<Races> ChrRaces = new List<Races>();
         public ConcurrentDictionary<ulong, WorldClass> Sessions;
         public ConcurrentDictionary<ulong, WorldClass2> Sessions2;

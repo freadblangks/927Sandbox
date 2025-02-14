@@ -55,24 +55,24 @@ namespace AuthServer.Game.PacketHandler
             session.Character = null;
             if (!File.Exists(Helper.DataDirectory() + "characters.json"))
                 File.Create(Helper.DataDirectory() + "characters.json").Dispose();
-            WorldMgr.CharaterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
+            WorldMgr.CharacterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
 
-            if (WorldMgr.CharaterList == null)
-                WorldMgr.CharaterList = new List<Character>();
+            if (WorldMgr.CharacterList == null)
+                WorldMgr.CharacterList = new List<Character>();
 
-            WorldMgr.CharaterList.Where(c => c.AccountId == session.Account.Id);
+            WorldMgr.CharacterList.Where(c => c.AccountId == session.Account.Id);
 
             // Updating Datalength
-            for (var i = 0; i < WorldMgr.CharaterList.Count; i++)
-                WorldMgr.CharaterList[i].DataLength = (int)ActivePlayerFields.End;
+            for (var i = 0; i < WorldMgr.CharacterList.Count; i++)
+                WorldMgr.CharacterList[i].DataLength = (int)ActivePlayerFields.End;
 
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharaterList));
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharacterList));
 
             // Re-read it
-            WorldMgr.CharaterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
+            WorldMgr.CharacterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
 
-            if (WorldMgr.CharaterList == null)
-                WorldMgr.CharaterList = new List<Character>();
+            if (WorldMgr.CharacterList == null)
+                WorldMgr.CharacterList = new List<Character>();
 
             PacketWriter enumCharacters = new PacketWriter(ServerMessage.EnumCharactersResult);
             BitPack BitPack = new BitPack(enumCharacters);
@@ -87,7 +87,7 @@ namespace AuthServer.Game.PacketHandler
 
             BitPack.Flush();
 
-            enumCharacters.WriteInt32(WorldMgr.CharaterList.Count);
+            enumCharacters.WriteInt32(WorldMgr.CharacterList.Count);
             enumCharacters.WriteUInt32(60);
             enumCharacters.WriteInt32(WorldMgr.ChrRaces.Count);
 
@@ -104,37 +104,37 @@ namespace AuthServer.Game.PacketHandler
                 enumCharacters.WriteUInt32(1);
             }
 
-            for (int i = 0; i < WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < WorldMgr.CharacterList.Count; i++)
             {
-                var loginCinematic = WorldMgr.CharaterList[i].LoginCinematic;
-                var name = WorldMgr.CharaterList[i].Name;
+                var loginCinematic = WorldMgr.CharacterList[i].LoginCinematic;
+                var name = WorldMgr.CharacterList[i].Name;
 
-                enumCharacters.WriteSmartGuid(WorldMgr.CharaterList[i].Guid);
+                enumCharacters.WriteSmartGuid(WorldMgr.CharacterList[i].Guid);
                 enumCharacters.WriteUInt64(0);
                 enumCharacters.WriteUInt8(0);
-                enumCharacters.WriteUInt8(WorldMgr.CharaterList[i].Race);
-                enumCharacters.WriteUInt8(WorldMgr.CharaterList[i].Class);
-                enumCharacters.WriteUInt8(WorldMgr.CharaterList[i].Gender);
+                enumCharacters.WriteUInt8(WorldMgr.CharacterList[i].Race);
+                enumCharacters.WriteUInt8(WorldMgr.CharacterList[i].Class);
+                enumCharacters.WriteUInt8(WorldMgr.CharacterList[i].Gender);
 
                 // ChrCustomizationChoiceCount
-                enumCharacters.WriteInt32(WorldMgr.CharaterList[i].CharacterCustomizationChoices?.Count ?? 0);
-                enumCharacters.WriteUInt8(WorldMgr.CharaterList[i].Level);
+                enumCharacters.WriteInt32(WorldMgr.CharacterList[i].CharacterCustomizationChoices?.Count ?? 0);
+                enumCharacters.WriteUInt8(WorldMgr.CharacterList[i].Level);
 
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].Zone);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].Map);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].Zone);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].Map);
 
-                enumCharacters.WriteFloat(WorldMgr.CharaterList[i].Position.X);
-                enumCharacters.WriteFloat(WorldMgr.CharaterList[i].Position.Y);
-                enumCharacters.WriteFloat(WorldMgr.CharaterList[i].Position.Z);
+                enumCharacters.WriteFloat(WorldMgr.CharacterList[i].Position.X);
+                enumCharacters.WriteFloat(WorldMgr.CharacterList[i].Position.Y);
+                enumCharacters.WriteFloat(WorldMgr.CharacterList[i].Position.Z);
 
-                enumCharacters.WriteSmartGuid(WorldMgr.CharaterList[i].GuildGuid);
+                enumCharacters.WriteSmartGuid(WorldMgr.CharacterList[i].GuildGuid);
 
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].CharacterFlags);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].CustomizeFlags);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].CharacterFlags);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].CustomizeFlags);
                 enumCharacters.WriteUInt32(0);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].PetDisplayInfo);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].PetLevel);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].PetFamily);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].PetDisplayInfo);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].PetLevel);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].PetFamily);
 
                 // stuff
                 enumCharacters.WriteUInt32(0);
@@ -144,7 +144,7 @@ namespace AuthServer.Game.PacketHandler
                 for (int j = 0; j < 23; j++)
                 {
                     written = false;
-                    foreach (var kp in WorldMgr.CharaterList[i].Equipment)
+                    foreach (var kp in WorldMgr.CharacterList[i].Equipment)
                     {
                         if (kp.Key == j)
                         {
@@ -190,12 +190,12 @@ namespace AuthServer.Game.PacketHandler
                 enumCharacters.WriteUInt16(0);
                 enumCharacters.WriteUInt32(0);
                 enumCharacters.WriteUInt32(0);
-                enumCharacters.WriteUInt32(WorldMgr.CharaterList[i].Runes);
+                enumCharacters.WriteUInt32(WorldMgr.CharacterList[i].Runes);
                 enumCharacters.WriteUInt32(0);
                 enumCharacters.WriteUInt32(0);
                 enumCharacters.WriteUInt32(0);
 
-                WorldMgr.CharaterList[i].CharacterCustomizationChoices?.ForEach((choice) =>
+                WorldMgr.CharacterList[i].CharacterCustomizationChoices?.ForEach((choice) =>
                 {
                     enumCharacters.WriteUInt32(choice.OptionId);
                     enumCharacters.WriteUInt32(choice.Value);
@@ -258,7 +258,7 @@ namespace AuthServer.Game.PacketHandler
 
             var createChar = new PacketWriter(ServerMessage.CreateChar);
 
-            if (WorldMgr.CharaterList.Count >= 100)
+            if (WorldMgr.CharacterList.Count >= 100)
             {
                 // Char limit.
                 createChar.WriteUInt8(0x35);
@@ -266,7 +266,7 @@ namespace AuthServer.Game.PacketHandler
                 return;
             }
 
-            var result = WorldMgr.CharaterList.Any(c => c.Name == name);
+            var result = WorldMgr.CharacterList.Any(c => c.Name == name);
 
             if (result)
             {
@@ -295,7 +295,7 @@ namespace AuthServer.Game.PacketHandler
 
             if (!hasTemplate)
             {
-                zone = 10639;
+                zone = 10473;
                 map = 2175;
                 posX = -462.4f;
                 posY = -2619.8f;
@@ -486,7 +486,7 @@ namespace AuthServer.Game.PacketHandler
 
             // Allow declined names for now
             var characterFlags = CharacterFlag.Decline;
-            var guid = WorldMgr.CharaterList.Count > 0 ? WorldMgr.CharaterList[WorldMgr.CharaterList.Count - 1].Guid + 10 : 1;
+            var guid = WorldMgr.CharacterList.Count > 0 ? WorldMgr.CharacterList[WorldMgr.CharacterList.Count - 1].Guid + 10 : 1;
             var pcharacter = new Character(guid)
             {
                 Guid = guid,
@@ -570,9 +570,9 @@ namespace AuthServer.Game.PacketHandler
             }
 #endif
 
-            WorldMgr.CharaterList.Add(pcharacter);
+            WorldMgr.CharacterList.Add(pcharacter);
 
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharaterList));
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharacterList));
 
             // Success
             createChar.WriteUInt8(24);
@@ -585,17 +585,17 @@ namespace AuthServer.Game.PacketHandler
             var guid = packet.ReadSmartGuid();
             var index = 0;
 
-            for (int i = 0; i < WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < WorldMgr.CharacterList.Count; i++)
             {
-                if (WorldMgr.CharaterList[i].Guid == guid)
+                if (WorldMgr.CharacterList[i].Guid == guid)
                 {
                     index = i;
                     break;
                 }
             }
 
-            WorldMgr.CharaterList.RemoveAt(index);
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharaterList));
+            WorldMgr.CharacterList.RemoveAt(index);
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharacterList));
 
             PacketWriter deleteChar = new PacketWriter(ServerMessage.DeleteChar);
 
@@ -623,7 +623,7 @@ namespace AuthServer.Game.PacketHandler
                 NewName = names[rand.Next(names.Count)];
 
             }
-            while (WorldMgr.CharaterList.Any(c => c.Name == NewName));
+            while (WorldMgr.CharacterList.Any(c => c.Name == NewName));
 
             PacketWriter generateRandomCharacterNameResult = new PacketWriter(ServerMessage.GenerateRandomCharacterNameResult);
             BitPack BitPack = new BitPack(generateRandomCharacterNameResult);
@@ -649,11 +649,11 @@ namespace AuthServer.Game.PacketHandler
 
                     //Log.Message(LogType.Debug, "Character with Guid: {0}, AccountId: {1} tried to enter the world.", guid, session.Account.Id);
 
-                    for (int i = 0; i < WorldMgr.CharaterList.Count; i++)
+                    for (int i = 0; i < WorldMgr.CharacterList.Count; i++)
                     {
-                        if (WorldMgr.CharaterList[i].Guid == guid)
+                        if (WorldMgr.CharacterList[i].Guid == guid)
                         {
-                            session.Character = WorldMgr.CharaterList[i];
+                            session.Character = WorldMgr.CharacterList[i];
                             break;
                         }
                     }
@@ -664,7 +664,7 @@ namespace AuthServer.Game.PacketHandler
                     }
 
                     if (session.Character == null)
-                        session.Character = WorldMgr.CharaterList[0];
+                        session.Character = WorldMgr.CharacterList[0];
 
                     var sess2 = WorldMgr.GetSession2(lastSession);
                     if (sess2 == null)
@@ -713,11 +713,11 @@ namespace AuthServer.Game.PacketHandler
 
                         session.Character.LoginCinematic = false;
 
-                        for (int i = 0; i < WorldMgr.CharaterList.Count; i++)
+                        for (int i = 0; i < WorldMgr.CharacterList.Count; i++)
                         {
-                            if (WorldMgr.CharaterList[i].Guid == session.Character.Guid)
+                            if (WorldMgr.CharacterList[i].Guid == session.Character.Guid)
                             {
-                                WorldMgr.CharaterList[i].Position = session.Character.Position;
+                                WorldMgr.CharacterList[i].Position = session.Character.Position;
                                 break;
                             }
                         }
@@ -726,7 +726,7 @@ namespace AuthServer.Game.PacketHandler
                         {
                             try
                             {
-                                File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharaterList));
+                                File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(WorldMgr.CharacterList));
 
                                 Console.WriteLine("Characters saved.");
                                 break;

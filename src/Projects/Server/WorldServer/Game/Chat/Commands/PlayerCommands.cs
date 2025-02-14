@@ -1697,7 +1697,7 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
             var playername = Command.Read<string>(args, 1);
 
             // Serialize and deserialize it to create a copy of the object.
-            var tempPlayer = Json.CreateString(Manager.WorldMgr.CharaterList.SingleOrDefault(c => c.Name.ToLower() == playername.ToLower()));
+            var tempPlayer = Json.CreateString(Manager.WorldMgr.CharacterList.SingleOrDefault(c => c.Name.ToLower() == playername.ToLower()));
             var player = Json.CreateObject<Character>(tempPlayer);
 
             if (player != null)

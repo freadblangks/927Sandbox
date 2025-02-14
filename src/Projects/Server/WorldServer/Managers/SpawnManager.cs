@@ -567,10 +567,10 @@ namespace AuthServer.WorldServer.Managers
             if (!File.Exists(Helper.DataDirectory() + "characters.json"))
                 File.Create(Helper.DataDirectory() + "characters.json").Dispose();
 
-            Manager.WorldMgr.CharaterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
+            Manager.WorldMgr.CharacterList = Json.CreateObject<List<Character>>(File.ReadAllText(Helper.DataDirectory() + "characters.json"));
 
-            if (Manager.WorldMgr.CharaterList == null)
-                Manager.WorldMgr.CharaterList = new List<Character>();
+            if (Manager.WorldMgr.CharacterList == null)
+                Manager.WorldMgr.CharacterList = new List<Character>();
 
             string[] line;
 
@@ -594,7 +594,7 @@ namespace AuthServer.WorldServer.Managers
                         mountId = uint.Parse(line[8]);
 
                     // Serialize and deserialize it to create a copy of the object.
-                    var tempPlayer = Json.CreateString(Manager.WorldMgr.CharaterList.SingleOrDefault(c => c.Guid == originalGuid));
+                    var tempPlayer = Json.CreateString(Manager.WorldMgr.CharacterList.SingleOrDefault(c => c.Guid == originalGuid));
 
                     if (tempPlayer == null)
                     {

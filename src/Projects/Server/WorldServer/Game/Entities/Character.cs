@@ -86,7 +86,7 @@ namespace AuthServer.Game.Entities
         public Character() { }
         public Character(ulong guid, int updateLength = (int)ActivePlayerFields.End) : base(updateLength)
         {
-            foreach (var c in Manager.WorldMgr.CharaterList)
+            foreach (var c in Manager.WorldMgr.CharacterList)
             {
                 if (c.Guid == guid)
                 {

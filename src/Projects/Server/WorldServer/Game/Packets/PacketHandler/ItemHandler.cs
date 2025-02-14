@@ -692,17 +692,17 @@ namespace AuthServer.WorldServer.Game.Packets.PacketHandler
             }
 
             var index = 0;
-            for (int i = 0; i < Manager.WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < Manager.WorldMgr.CharacterList.Count; i++)
             {
-                if (Manager.WorldMgr.CharaterList[i].Guid == session.Character.Guid)
+                if (Manager.WorldMgr.CharacterList[i].Guid == session.Character.Guid)
                 {
                     index = i;
                     break;
                 }
             }
 
-            Manager.WorldMgr.CharaterList[index] = session.Character;
-            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharaterList));
+            Manager.WorldMgr.CharacterList[index] = session.Character;
+            File.WriteAllText(Helper.DataDirectory() + "characters.json", Json.CreateString(Manager.WorldMgr.CharacterList));
 
             Manager.ObjectMgr.SaveChar(session.Character);
         }

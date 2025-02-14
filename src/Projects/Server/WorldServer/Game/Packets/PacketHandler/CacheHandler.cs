@@ -200,11 +200,11 @@ namespace WorldServer.Game.Packets.PacketHandler
             }
 #endif
 
-            for (int i = 0; i < WorldMgr.CharaterList.Count; i++)
+            for (int i = 0; i < WorldMgr.CharacterList.Count; i++)
             {
-                if (WorldMgr.CharaterList[i].Guid == guid)
+                if (WorldMgr.CharacterList[i].Guid == guid)
                 {
-                    session.Character = WorldMgr.CharaterList[i];
+                    session.Character = WorldMgr.CharacterList[i];
                     break;
                 }
             }
