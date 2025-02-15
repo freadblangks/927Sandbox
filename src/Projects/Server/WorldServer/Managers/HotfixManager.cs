@@ -328,9 +328,13 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             Load().ConfigureAwait(false).GetAwaiter().GetResult();
 
             var hotfixMessage = new PacketWriter(ServerMessage.HotfixMessage);
+
+            var pushIDCountPos = hotfixMessage.BaseStream.Position;
+
             hotfixMessage.WriteInt32(RequestedPushIDs.Count);
             var bitPack = new BitPack(hotfixMessage);
 
+            var availablePushes = 0;
             using (var hotfixData = new MemoryStream())
             {
                 foreach (var pushID in RequestedPushIDs)
@@ -351,12 +355,20 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
                         // Write the hotfix data to the stream.
                         hotfixData.Write(hotfixRow);
+
+                        availablePushes++;
                     }
                     else
                     {
                         Log.Message(LogType.Error, $"Client requested hotfix for {pushID}, but it or a connected hotfix record could not be found, skipping..");
                     }
                 }
+
+                // Write actual pushID count in reply in header
+                var prevPos = hotfixMessage.BaseStream.Position;
+                hotfixMessage.BaseStream.Position = pushIDCountPos;
+                hotfixMessage.Write(availablePushes);
+                hotfixMessage.BaseStream.Position = prevPos;
 
                 var hotfixDataArray = hotfixData.ToArray();
 
