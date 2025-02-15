@@ -75,7 +75,15 @@ namespace AuthServer.Network
             op.RemoteCertificateValidationCallback = App_CertificateValidation;
             op.ServerCertificate = cert;
             op.AllowRenegotiation = true;
-            sslStream.AuthenticateAsServer(op);
+
+            try
+            {
+                sslStream.AuthenticateAsServer(op);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("SSL stream failure");
+            }
 
             try
             {
@@ -150,7 +158,7 @@ namespace AuthServer.Network
                 header.Token = token++;
                 header.ServiceId = 0xFE;
                 header.Size = (uint)pData.Length;
-                
+
 
                 var pHeader = header.ToByteArray();
                 var dataToSend = new byte[2];

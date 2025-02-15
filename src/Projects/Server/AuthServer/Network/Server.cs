@@ -71,18 +71,24 @@ namespace AuthServer.Network
 
                 if (listener.Pending())
                 {
-                    var clientSocket = await listener.AcceptSocketAsync();
-
-                    if (clientSocket != null)
+                    try
                     {
-                        Sandbox.AuthSession = new AuthSession(clientSocket);
+                        var clientSocket = await listener.AcceptSocketAsync();
 
-                        await Task.Factory.StartNew(Sandbox.AuthSession.Accept);
+                        if (clientSocket != null)
+                        {
+                            Sandbox.AuthSession = new AuthSession(clientSocket);
+
+                            await Task.Factory.StartNew(Sandbox.AuthSession.Accept);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Message(LogType.Error, "Error accepting connection: {0}", e.Message);
                     }
                 }
             }
         }
-
         async void AcceptRestConnection()
         {
             while (isRunning)
