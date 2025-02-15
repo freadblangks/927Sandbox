@@ -2031,7 +2031,7 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
         [ChatCommand("hotfix")]
         public static void Hotfix(string[] args, WorldClass session)
         {
-            HotfixManager.GetInstance().SendHotfixMessage(session);
+            HotfixManager.GetInstance().SendAvailableHotfixes(session);
         }
     }
 }
