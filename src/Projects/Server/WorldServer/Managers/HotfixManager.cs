@@ -70,9 +70,13 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             {
                 LoadHotfixJSON(e.FullPath).ConfigureAwait(false).GetAwaiter().GetResult();
             }
+            catch(IOException ioEx)
+            {
+                Log.Message(LogType.Info, $"{e.FullPath} is currently busy/locked, but we should be trying again.");
+            }
             catch (Exception ex)
             {
-                Log.Message(LogType.Error, "Error reading hotfixes from " + e.FullPath + ": " + ex.Message);
+                Log.Message(LogType.Error, $"Error reading hotfixes from {e.FullPath}, make sure it is valid JSON: {ex.Message}");
                 return;
             }
 
@@ -88,7 +92,15 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
             foreach (var f in Directory.GetFiles($"{HotfixFolder}", $"*{HotfixFileExtension}"))
             {
-                await LoadHotfixJSON(f);
+                try
+                {
+                    await LoadHotfixJSON(f);
+                }
+                catch (Exception e)
+                {
+                    Log.Message(LogType.Error, $"Error reading hotfixes from {f}, make sure it is valid JSON: {e.Message}");
+                    continue;
+                }
             }
         }
 
@@ -238,7 +250,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
                     // Check if this hotfix already exists in the current pushes
                     if (Pushes.Any(x => x.Value.TableHash == dbInfo.TableHash && x.Value.RecordID == recordID && x.Value.UniqueID == crc))
                     {
-                        Log.Message(LogType.Error, $"Hotfix for {hotfixName} with record ID {recordID} and the same data already exists, skipping..");
+                        Log.Message(LogType.Info, $"Hotfix for {hotfixName} with record ID {recordID} and the same data already exists, skipping..");
                         continue;
                     }
                     else
@@ -254,8 +266,6 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
                 }
             }
-
-            Log.Message(LogType.Info, $" - {hotfixName}: {Hotfixes[dbInfo.TableHash].Count}");
         }
 
         public void Clear()
@@ -345,7 +355,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             {
                 foreach (var pushID in RequestedPushIDs)
                 {
-                    if(!ChangedPushesSinceLastHotfixMessage.Contains(pushID))
+                    if (!ChangedPushesSinceLastHotfixMessage.Contains(pushID))
                     {
                         Log.Message(LogType.Error, $"Client requested hotfix for {pushID}, but it was not changed since last hotfix message, skipping..");
                         continue;
