@@ -21,6 +21,7 @@ Use with a correctly set up 9.2.7 client as well as the launcher available from 
 |!additem `itemIds` | You can use multiple IDs separated by spaces |
 |!additem `itemId,version` | Where `version` is normal, heroic, mythic or lfr. |
 |!emote `id` |
+|!weather `id` `intensity`| Where `id` is a [weather ID](https://wago.tools/db2/Weather?build=9.2.7.45745) and `intensity` is an amount (higher than 0.0, requires more research) | 
 |!commentator `on`/`off` |Detaches the camera from the character. Change speed with /script C_Commentator.SetMoveSpeed(40)
 
 ## License
