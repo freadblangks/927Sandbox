@@ -2033,5 +2033,21 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
         {
             HotfixManager.GetInstance().SendAvailableHotfixes(session);
         }
+
+        [ChatCommand("weather")]
+        public static void Weather(string[] args, WorldClass session)
+        {
+            var weatherID = Command.Read<uint>(args, 1);
+            var intensity = Command.Read<float>(args, 2);
+
+            PacketWriter weather = new PacketWriter(ServerMessage.Weather);
+            BitPack bp = new BitPack(weather);
+            weather.WriteUInt32(weatherID);
+            weather.Write(intensity);
+            bp.Write(1, 1);
+            bp.Flush();
+
+            session.Send(ref weather);
+        }
     }
 }

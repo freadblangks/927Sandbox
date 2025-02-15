@@ -141,5 +141,6 @@ namespace Framework.Constants.Net
         CancelScene = 0x262F, // 25826
         CalendarNum = 0x26C7,
         ClearTarget = 0x2942,
+        Weather = 0x269E
     }
 }
