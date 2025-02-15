@@ -298,24 +298,23 @@ namespace AuthServer.Game.Packets.PacketHandler
 
         }
 
-        //[Opcode(ClientMessage.HotfixRequest, "34003")]
+        [Opcode(ClientMessage.HotfixRequest, "34003")]
         public static void HandleHotfixRequest(ref PacketReader packet, WorldClass session)
         {
-            Log.Message(LogType.Info, $"Got hotfix request...");
-
-            var currentBuild = packet.ReadUInt32();
-            var internalBuild = packet.ReadUInt32();
+            var clientBuild = packet.ReadUInt32();
+            var dataBuild = packet.ReadUInt32();
             var hotfixCount = packet.ReadUInt32();
 
+            var requestedHotfixes = new List<uint>();
             for (var i = 0; i < hotfixCount; i++)
             {
-                var tableHash = packet.ReadUInt32();
-                var recordId = packet.ReadUInt32();
-                var hotfixId = packet.ReadUInt32();
-
-                //Hotfix.SendHotfixReply(session, tableHash, recordId);
-                Hotfix.SendHotfixMessage(session);
+                var pushID = packet.ReadUInt32();
+                requestedHotfixes.Add(pushID);
             }
+
+            Log.Message(LogType.Debug, $"Hotfix request: Client build: {clientBuild}, Data build: {dataBuild}, Hotfix count: {hotfixCount}, PushIDs: {string.Join(", ", requestedHotfixes)}");
+
+            Hotfix.SendHotfixMessage(session, requestedHotfixes);
         }
     }
 }

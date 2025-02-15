@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -24,55 +25,228 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
         const string HotfixFolder = "hotfixes";
         const string HotfixFileExtension = ".json";
 
-        public Dictionary<uint, Dictionary<uint, List<string>>> Hotfixes { get; }
+        public Dictionary<uint, Dictionary<uint, byte[]>> Hotfixes { get; }
+
+        public Dictionary<uint, (uint UniqueID, uint TableHash, uint RecordID)> Pushes { get; private set; } = [];
+
+        private FileSystemWatcher hotfixDirWatcher;
+
+        private uint lastPushID;
 
         HotfixManager()
         {
-            Hotfixes = new Dictionary<uint, Dictionary<uint, List<string>>>();
+            Hotfixes = [];
 
-#if DEBUG
             if (!Directory.Exists("./hotfixes"))
                 Directory.CreateDirectory("./hotfixes");
-#endif
+
+            hotfixDirWatcher = new FileSystemWatcher
+            {
+                Path = "./hotfixes",
+                NotifyFilter = NotifyFilters.LastWrite,
+                Filter = "*.json",
+                EnableRaisingEvents = true,
+                IncludeSubdirectories = false
+            };
+
+            if (File.Exists("lastPushID.txt"))
+                lastPushID = uint.Parse(File.ReadAllText("lastPushID.txt"));
+            else
+            {
+                lastPushID = 9_999_999;
+                File.WriteAllText("lastPushID.txt", lastPushID.ToString());
+            }
+
+            hotfixDirWatcher.Changed += new FileSystemEventHandler(OnHotfixChanged);
+        }
+
+        private void OnHotfixChanged(object sender, FileSystemEventArgs e)
+        {
+            Log.Message(LogType.Info, "Hotfixes changed for " + Path.GetFileNameWithoutExtension(e.FullPath) + ": " + e.ChangeType);
+
+            try
+            {
+                LoadHotfixJSON(e.FullPath).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Log.Message(LogType.Error, "Error reading hotfixes from " + e.FullPath + ": " + ex.Message);
+            }
+
+            for (int i = 0; i < Manager.WorldMgr.Sessions.Count; i++)
+            {
+                SendAvailableHotfixes(Manager.WorldMgr.Sessions.ElementAt(i).Value);
+            }
         }
 
         public async Task Load()
         {
-#if DEBUG
             Log.Message(LogType.Info, $"Loading hotfixes...");
 
             foreach (var f in Directory.GetFiles($"{HotfixFolder}", $"*{HotfixFileExtension}"))
             {
-                var hotfixName = Path.GetFileNameWithoutExtension(f);
+                await LoadHotfixJSON(f);
+            }
+        }
 
-                var fileContent = File.ReadAllText(f);
-                dynamic hotfixObject = JsonConvert.DeserializeObject(fileContent);
-                var dbInfo = Manager.WorldMgr.DBInfo[hotfixName];
+        public async Task LoadHotfixJSON(string filename)
+        {
+            var hotfixName = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
 
-                Hotfixes.Add(dbInfo.TableHash, new Dictionary<uint, List<string>>());
+            var fileContent = await File.ReadAllTextAsync(filename);
+            dynamic hotfixObject = JsonConvert.DeserializeObject(fileContent);
 
-                foreach (JObject entry in hotfixObject)
+            if (!Manager.WorldMgr.DBInfo.TryGetValue(hotfixName, out var dbInfo))
+            {
+                Log.Message(LogType.Error, "Tried to read hotfix file with name " + hotfixName + " which is not a known table, skipping!");
+                return;
+            }
+
+            Hotfixes[dbInfo.TableHash] = [];
+
+            foreach (JObject entry in hotfixObject)
+            {
+                var fields = new List<string>();
+                var properties = entry.Properties().Skip(1);
+
+                foreach (JProperty property in properties)
                 {
-                    var values = new List<string>();
-                    var properties = entry.Properties().Skip(1);
-
-                    foreach (JProperty property in properties)
+                    if (property.Value is JArray items)
                     {
-                        if (property.Value is JArray items)
-                        {
-                            foreach (var item in items)
-                                values.Add(item.ToString());
-                        }
-                        else
-                            values.Add(property.Value.ToString());
+                        foreach (var item in items)
+                            fields.Add(item.ToString());
                     }
-
-                    Hotfixes[dbInfo.TableHash].Add(uint.Parse(entry.Property("Id").Value.ToString()), values);
+                    else
+                        fields.Add(property.Value.ToString());
                 }
 
-                Log.Message(LogType.Info, $" - {hotfixName}: {Hotfixes[dbInfo.TableHash].Count}");
+                var recordID = uint.Parse(entry.Property("Id").Value.ToString());
+
+                if (!dbInfo.HasIndex)
+                    fields.Insert(dbInfo.IDPosition, recordID.ToString());
+
+                // Write the hotfix row data.
+                using (var ms = new MemoryStream())
+                using (var hotfixRow = new BinaryWriter(ms))
+                {
+                    for (var i = 0; i < fields.Count; i++)
+                    {
+                        switch (dbInfo.FieldTypes[i].ToLower())
+                        {
+                            case "string":
+                                var sBytes = Encoding.UTF8.GetBytes(fields[i]);
+
+                                hotfixRow.Write(sBytes, 0, sBytes.Length);
+                                hotfixRow.Write((byte)0);
+                                break;
+                            case "sbyte":
+                                {
+                                    if (sbyte.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else if (byte.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else
+                                        throw new InvalidDataException("sbyte || byte");
+
+                                    break;
+                                }
+                            case "byte":
+                                {
+                                    if (byte.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else if (sbyte.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else
+                                        throw new InvalidDataException("sbyte || byte");
+
+                                    break;
+                                }
+                            case "int16":
+                                {
+                                    if (short.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else if (ushort.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else
+                                        throw new InvalidDataException("int16 || uint16");
+
+                                    break;
+                                }
+                            case "uint16":
+                                {
+                                    if (ushort.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else if (short.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else
+                                        throw new InvalidDataException("int16 || uint16");
+
+                                    break;
+                                }
+                            case "int32":
+                                {
+                                    if (int.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else if (uint.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else
+                                        throw new InvalidDataException("int32 || uint32");
+
+                                    break;
+                                }
+                            case "uint32":
+                                {
+                                    if (uint.TryParse(fields[i], out var unsignedResult))
+                                        hotfixRow.Write(unsignedResult);
+                                    else if (int.TryParse(fields[i], out var signedResult))
+                                        hotfixRow.Write(signedResult);
+                                    else
+                                        throw new InvalidDataException("int32 || uint32");
+
+                                    break;
+                                }
+                            case "single":
+                                hotfixRow.Write(float.Parse(fields[i], NumberStyles.Any, CultureInfo.InvariantCulture));
+                                break;
+                            case "int64":
+                                hotfixRow.Write(long.Parse(fields[i]));
+                                break;
+                            case "uint64":
+                                hotfixRow.Write(ulong.Parse(fields[i]));
+                                break;
+                            case "ref":
+                                hotfixRow.Write(uint.Parse(fields[i]));
+                                break;
+                            default:
+                                Log.Message(LogType.Error, "Unknown field type for hotfixes.");
+                                break;
+                        }
+                    }
+
+                    var hotfixData = ms.ToArray();
+                    Hotfixes[dbInfo.TableHash].Add(recordID, hotfixData);
+
+                    var crc = BitConverter.ToUInt32(System.IO.Hashing.Crc32.Hash(hotfixData));
+
+                    // Check if this hotfix already exists in the current pushes
+                    if (Pushes.Any(x => x.Value.TableHash == dbInfo.TableHash && x.Value.RecordID == recordID && x.Value.UniqueID == crc))
+                    {
+                        Log.Message(LogType.Error, $"Hotfix for {hotfixName} with record ID {recordID} and the same data already exists, skipping..");
+                        continue;
+                    }
+                    else
+                    {
+                        // Remove any existing pushes with this table hash and record ID
+                        foreach (var push in Pushes.Where(x => x.Value.TableHash == dbInfo.TableHash && x.Value.RecordID == recordID))
+                            Pushes.Remove(push.Key);
+
+                        Pushes.Add(lastPushID++, (crc, dbInfo.TableHash, recordID));
+                    }
+
+                }
             }
-#endif
+
+            Log.Message(LogType.Info, $" - {hotfixName}: {Hotfixes[dbInfo.TableHash].Count}");
         }
 
         public void Clear()
@@ -82,7 +256,6 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
         public void SendClearHotfixes(WorldClass session)
         {
-#if DEBUG
             Log.Message(LogType.Info, $"Cleaning hotfix cache...");
 
             foreach (var table in Hotfixes)
@@ -107,265 +280,93 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             }
 
             Log.Message(LogType.Info, $"Done");
-#endif
         }
 
         public void SendAvailableHotfixes(WorldClass session)
         {
-#if DEBUG
             Log.Message(LogType.Info, $"Sending available hotfixes...");
 
-            foreach (var table in Hotfixes)
+            var availableHotfixes = new PacketWriter(ServerMessage.AvailableHotfixes);
+
+            availableHotfixes.WriteInt32(838926338);    // Virtual Realm Address
+            availableHotfixes.WriteInt32(Pushes.Count); // Total hotfix count
+
+            foreach (var push in Pushes)
             {
-                var availableHotfixes = new PacketWriter(ServerMessage.AvailableHotfixes);
-
-                availableHotfixes.WriteInt32(838926338); // TODO: Implement versions.
-                availableHotfixes.WriteInt32(table.Value.Count);
-
-                foreach (var hotfix in table.Value)
-                {
-                    availableHotfixes.WriteUInt32(table.Key);
-                    availableHotfixes.WriteUInt32(hotfix.Key);
-                    availableHotfixes.WriteUInt32(hotfix.Key + 838926338);
-                }
-
-                session.Send(ref availableHotfixes);
+                availableHotfixes.WriteUInt32(push.Key);                // PushID
+                availableHotfixes.WriteUInt32(push.Value.UniqueID);     // UniqueID
             }
+
+            session.Send(ref availableHotfixes);
 
             Log.Message(LogType.Info, $"Done");
-#endif
         }
 
-        public void SendHotfixReply(WorldClass session, uint tableHash, uint recordId)
+        public void SendDBReply(WorldClass session, uint pushID)
         {
-#if DEBUG
-            if (Hotfixes.TryGetValue(tableHash, out var table) && table.TryGetValue(recordId, out var hotfix))
+            if (Pushes.TryGetValue(pushID, out var pushInfo) && Hotfixes.TryGetValue(pushInfo.TableHash, out var tableRows) && tableRows.TryGetValue(pushInfo.RecordID, out var hotfixRow))
             {
-                // Copy hotfix data.
-                var fields = hotfix.ToList();
-                var dbInfo = Manager.WorldMgr.DBInfo.SingleOrDefault(db => db.Value.TableHash == tableHash).Value;
+                var dbReply = new PacketWriter(ServerMessage.DBReply);
 
-                if (dbInfo != null)
-                {
-                    if (!dbInfo.HasIndex)
-                        fields.Insert(dbInfo.IDPosition, recordId.ToString());
+                dbReply.Write(pushInfo.TableHash);
+                dbReply.Write(pushInfo.RecordID);
+                dbReply.WriteUInt32((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                dbReply.Write((byte)0x80); // Status? AKA 1,2,3 or 4? Or something else?
 
-                    // Write the hotfix row data.
-                    var hotfixRow = new BinaryWriter(new MemoryStream());
+                dbReply.Write(hotfixRow.Length);
+                dbReply.Write(hotfixRow);
 
-                    for (var i = 0; i < fields.Count; i++)
-                    {
-                        switch (dbInfo.FieldTypes[i].ToLower())
-                        {
-                            case "string":
-                                var sBytes = Encoding.UTF8.GetBytes(fields[i]);
-
-                                hotfixRow.Write(sBytes, 0, sBytes.Length);
-                                hotfixRow.Write((byte)0);
-                                break;
-                            case "sbyte":
-                                hotfixRow.Write(sbyte.Parse(fields[i]));
-                                break;
-                            case "byte":
-                                hotfixRow.Write(byte.Parse(fields[i]));
-                                break;
-                            case "int16":
-                                hotfixRow.Write(short.Parse(fields[i]));
-                                break;
-                            case "uint16":
-                                hotfixRow.Write(ushort.Parse(fields[i]));
-                                break;
-                            case "int32":
-                                hotfixRow.Write(int.Parse(fields[i]));
-                                break;
-                            case "uint32":
-                                hotfixRow.Write(uint.Parse(fields[i]));
-                                break;
-                            case "single":
-                                hotfixRow.Write(float.Parse(fields[i], NumberStyles.Any, CultureInfo.InvariantCulture));
-                                break;
-                            case "int64":
-                                hotfixRow.Write(long.Parse(fields[i]));
-                                break;
-                            case "uint64":
-                                hotfixRow.Write(ulong.Parse(fields[i]));
-                                break;
-                            case "ref":
-                                hotfixRow.Write(uint.Parse(fields[i]));
-                                break;
-                            default:
-                                Log.Message(LogType.Error, "Unknown field type for hotfixes.");
-                                break;
-                        }
-                    }
-
-                    var dbReply = new PacketWriter(ServerMessage.DBReply);
-
-                    dbReply.Write(tableHash);
-                    dbReply.Write(recordId);
-                    dbReply.WriteUInt32(recordId + 838926338);
-                    dbReply.Write((byte)0x80);
-
-                    var hotfixRowData = (hotfixRow.BaseStream as MemoryStream).ToArray();
-
-                    dbReply.Write(hotfixRowData.Length);
-                    dbReply.Write(hotfixRowData);
-
-                    session.Send(ref dbReply);
-                }
+                session.Send(ref dbReply);
             }
-#endif
         }
 
-        public void SendHotfixMessage(WorldClass session)
+        public void SendHotfixMessage(WorldClass session, List<uint> RequestedPushIDs)
         {
-            Log.Message(LogType.Info, $"Sending hotfixes...");
+            Log.Message(LogType.Info, $"Sending hotfixes for requested pushes: " + string.Join(", ", RequestedPushIDs) + "...");
 
             Clear();
             Load().ConfigureAwait(false).GetAwaiter().GetResult();
 
-            foreach (var table in Hotfixes)
+            var hotfixMessage = new PacketWriter(ServerMessage.HotfixMessage);
+            hotfixMessage.WriteInt32(RequestedPushIDs.Count);
+            var bitPack = new BitPack(hotfixMessage);
+
+            using (var hotfixData = new MemoryStream())
             {
-                var hotfixMessage = new PacketWriter(ServerMessage.HotfixMessage);
-
-                hotfixMessage.WriteInt32(table.Value.Count);
-
-                var hotfixData = new BinaryWriter(new MemoryStream());
-
-                foreach (var hotfix in table.Value)
+                foreach (var pushID in RequestedPushIDs)
                 {
-                    // Copy hotfix data.
-                    var fields = hotfix.Value.ToList();
-                    var dbInfo = Manager.WorldMgr.DBInfo.SingleOrDefault(db => db.Value.TableHash == table.Key).Value;
-
-                    if (dbInfo != null)
+                    if (Pushes.TryGetValue(pushID, out var pushInfo) && Hotfixes.TryGetValue(pushInfo.TableHash, out var tableRows) && tableRows.TryGetValue(pushInfo.RecordID, out var hotfixRow))
                     {
-                        if (!dbInfo.HasIndex)
-                            fields.Insert(dbInfo.IDPosition, hotfix.Key.ToString());
+                        var startPos = hotfixMessage.BaseStream.Position;
 
-                        // Write the hotfix row data.
-                        var hotfixRow = new BinaryWriter(new MemoryStream());
-
-                        for (var i = 0; i < fields.Count; i++)
-                        {
-                            switch (dbInfo.FieldTypes[i].ToLower())
-                            {
-                                case "string":
-                                    var sBytes = Encoding.UTF8.GetBytes(fields[i]);
-
-                                    hotfixRow.Write(sBytes, 0, sBytes.Length);
-                                    hotfixRow.Write((byte)0);
-                                    break;
-                                case "sbyte":
-                                {
-                                    if (sbyte.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else if (byte.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else
-                                        throw new InvalidDataException("sbyte || byte");
-
-                                    break;
-                                }
-                                case "byte":
-                                {
-                                    if (byte.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else if (sbyte.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else
-                                        throw new InvalidDataException("sbyte || byte");
-
-                                    break;
-                                }
-                                case "int16":
-                                {
-                                    if (short.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else if (ushort.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else
-                                        throw new InvalidDataException("int16 || uint16");
-
-                                    break;
-                                }
-                                case "uint16":
-                                {
-                                    if (ushort.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else if (short.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else
-                                        throw new InvalidDataException("int16 || uint16");
-
-                                    break;
-                                }
-                                case "int32":
-                                {
-                                    if (int.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else if (uint.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else
-                                        throw new InvalidDataException("int32 || uint32");
-
-                                    break;
-                                }
-                                case "uint32":
-                                {
-                                    if (uint.TryParse(fields[i], out var unsignedResult))
-                                        hotfixRow.Write(unsignedResult);
-                                    else if (int.TryParse(fields[i], out var signedResult))
-                                        hotfixRow.Write(signedResult);
-                                    else
-                                        throw new InvalidDataException("int32 || uint32");
-
-                                    break;
-                                }
-                                case "single":
-                                    hotfixRow.Write(float.Parse(fields[i], NumberStyles.Any, CultureInfo.InvariantCulture));
-                                    break;
-                                case "int64":
-                                    hotfixRow.Write(long.Parse(fields[i]));
-                                    break;
-                                case "uint64":
-                                    hotfixRow.Write(ulong.Parse(fields[i]));
-                                    break;
-                                case "ref":
-                                    hotfixRow.Write(uint.Parse(fields[i]));
-                                    break;
-                                default:
-                                    Log.Message(LogType.Error, "Unknown field type for hotfixes.");
-                                    break;
-                            }
-                        }
-
-                        var hotfixRowData = (hotfixRow.BaseStream as MemoryStream).ToArray();
-                        var bitPack = new BitPack(hotfixMessage);
-
-                        hotfixMessage.Write(hotfix.Key + 838926338);
-                        hotfixMessage.Write(hotfix.Key + 838926338);
-                        hotfixMessage.Write(table.Key);
-                        hotfixMessage.Write(hotfix.Key);
-                        hotfixMessage.Write(hotfixRowData.Length);
-
-                        // Allow the hotfix.
-                        // 0 - Invalid, 1 - Valid, 2 - ???, 3 - Skip
-                        bitPack.Write(1, 3);
+                        hotfixMessage.Write(pushID);            // Push ID
+                        hotfixMessage.Write(pushInfo.UniqueID); // Push Unique ID
+                        hotfixMessage.Write(pushInfo.TableHash);// Table Hash 
+                        hotfixMessage.Write(pushInfo.RecordID); // Record ID
+                        hotfixMessage.Write(hotfixRow.Length);  // Hotfix data length
+                        bitPack.Write(1, 3);                    // Hotfix status
                         bitPack.Flush();
 
+                        Log.Message(LogType.Debug, $"Appending hotfix for pushID {pushID} with Unique ID {pushInfo.UniqueID}, table hash {pushInfo.TableHash} and record ID {pushInfo.RecordID} (started at {startPos}, currently at {hotfixMessage.BaseStream.Position})");
+
                         // Write the hotfix data to the stream.
-                        hotfixData.Write(hotfixRowData);
+                        hotfixData.Write(hotfixRow);
+                    }
+                    else
+                    {
+                        Log.Message(LogType.Error, $"Client requested hotfix for {pushID}, but it or a connected hotfix record could not be found, skipping..");
                     }
                 }
 
-                var hotfixDataArray = (hotfixData.BaseStream as MemoryStream).ToArray();
+                var hotfixDataArray = hotfixData.ToArray();
+
+                Log.Message(LogType.Debug, $"Appending hotfix data of size {hotfixDataArray.Length} to packet");
 
                 hotfixMessage.Write(hotfixDataArray.Length);
                 hotfixMessage.Write(hotfixDataArray);
-
-                session.Send(ref hotfixMessage);
             }
+
+            session.Send(ref hotfixMessage);
         }
 
         public Dictionary<uint, GameObjectDisplayInfo> GameObjectFileHotfixes = new Dictionary<uint, GameObjectDisplayInfo>();
