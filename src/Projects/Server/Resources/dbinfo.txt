@@ -420,7 +420,7 @@ ManifestInterfaceData;4273710460;True;False;0;String,String
 ManifestInterfaceItemIcon;36381654;False;False;0;Int32
 ManifestInterfaceTOCData;3843019564;True;False;0;String
 ManifestMP3;893275916;False;False;0;Int32
-Map;3179597154;True;False;0;String,String,String,String,String,String,String,Single,Single,Byte,SByte,Byte,UInt16,Int16,Int16,Int16,UInt16,Byte,Single,Int16,Byte,Int16,Int32,Int32,Int32,Int32
+Map;3179597154;True;False;0;String,String,String,String,String,String,Single,Single,Byte,SByte,Byte,UInt16,Int16,Int16,Int16,UInt16,Byte,Single,Int16,Byte,Int16,Int32,Int32,Int32,Int32,Int32
 MapCelestialBody;2523168314;True;True;0;Int16,UInt32,Ref
 MapChallengeMode;943410215;False;False;1;String,Int32,UInt16,Byte,UInt32,UInt16,UInt16,UInt16
 MapDifficulty;2456155917;True;True;0;String,Int32,Int32,SByte,Int32,Int32,Int32,Int32,Int32,Ref
