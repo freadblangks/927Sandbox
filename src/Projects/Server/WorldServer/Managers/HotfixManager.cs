@@ -25,13 +25,13 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
         const string HotfixFolder = "hotfixes";
         const string HotfixFileExtension = ".json";
 
-        public Dictionary<uint, Dictionary<uint, byte[]>> Hotfixes { get; }
+        public Dictionary<uint, Dictionary<int, byte[]>> Hotfixes { get; }
 
-        public Dictionary<uint, (uint UniqueID, uint TableHash, uint RecordID)> Pushes { get; private set; } = [];
+        public Dictionary<int, (uint UniqueID, uint TableHash, int RecordID)> Pushes { get; private set; } = [];
 
         private FileSystemWatcher hotfixDirWatcher;
 
-        private uint lastPushID;
+        private int lastPushID;
 
         HotfixManager()
         {
@@ -50,10 +50,10 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             };
 
             if (File.Exists("lastPushID.txt"))
-                lastPushID = uint.Parse(File.ReadAllText("lastPushID.txt"));
+                lastPushID = int.Parse(File.ReadAllText("lastPushID.txt"));
             else
             {
-                lastPushID = 9_999_999;
+                lastPushID = 1;
                 File.WriteAllText("lastPushID.txt", lastPushID.ToString());
             }
 
@@ -71,6 +71,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             catch (Exception ex)
             {
                 Log.Message(LogType.Error, "Error reading hotfixes from " + e.FullPath + ": " + ex.Message);
+                return;
             }
 
             for (int i = 0; i < Manager.WorldMgr.Sessions.Count; i++)
@@ -94,6 +95,10 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             var hotfixName = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
 
             var fileContent = await File.ReadAllTextAsync(filename);
+
+            if (fileContent.Length == 0)
+                return;
+
             dynamic hotfixObject = JsonConvert.DeserializeObject(fileContent);
 
             if (!Manager.WorldMgr.DBInfo.TryGetValue(hotfixName, out var dbInfo))
@@ -224,7 +229,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
                     }
 
                     var hotfixData = ms.ToArray();
-                    Hotfixes[dbInfo.TableHash].Add(recordID, hotfixData);
+                    Hotfixes[dbInfo.TableHash].Add((int)recordID, hotfixData);
 
                     var crc = BitConverter.ToUInt32(System.IO.Hashing.Crc32.Hash(hotfixData));
 
@@ -240,7 +245,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
                         foreach (var push in Pushes.Where(x => x.Value.TableHash == dbInfo.TableHash && x.Value.RecordID == recordID))
                             Pushes.Remove(push.Key);
 
-                        Pushes.Add(lastPushID++, (crc, dbInfo.TableHash, recordID));
+                        Pushes.Add(lastPushID++, (crc, dbInfo.TableHash, (int)recordID));
                     }
 
                 }
@@ -293,7 +298,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
             foreach (var push in Pushes)
             {
-                availableHotfixes.WriteUInt32(push.Key);                // PushID
+                availableHotfixes.WriteInt32(push.Key);                // PushID
                 availableHotfixes.WriteUInt32(push.Value.UniqueID);     // UniqueID
             }
 
@@ -302,7 +307,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             Log.Message(LogType.Info, $"Done");
         }
 
-        public void SendDBReply(WorldClass session, uint pushID)
+        public void SendDBReply(WorldClass session, int pushID)
         {
             if (Pushes.TryGetValue(pushID, out var pushInfo) && Hotfixes.TryGetValue(pushInfo.TableHash, out var tableRows) && tableRows.TryGetValue(pushInfo.RecordID, out var hotfixRow))
             {
@@ -320,12 +325,9 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             }
         }
 
-        public void SendHotfixMessage(WorldClass session, List<uint> RequestedPushIDs)
+        public void SendHotfixMessage(WorldClass session, List<int> RequestedPushIDs)
         {
             Log.Message(LogType.Info, $"Sending hotfixes for requested pushes: " + string.Join(", ", RequestedPushIDs) + "...");
-
-            Clear();
-            Load().ConfigureAwait(false).GetAwaiter().GetResult();
 
             var hotfixMessage = new PacketWriter(ServerMessage.HotfixMessage);
 
@@ -351,7 +353,7 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
                         bitPack.Write(1, 3);                    // Hotfix status
                         bitPack.Flush();
 
-                        Log.Message(LogType.Debug, $"Appending hotfix for pushID {pushID} with Unique ID {pushInfo.UniqueID}, table hash {pushInfo.TableHash} and record ID {pushInfo.RecordID} (started at {startPos}, currently at {hotfixMessage.BaseStream.Position})");
+                        //Log.Message(LogType.Debug, $"Appending hotfix for pushID {pushID} with Unique ID {pushInfo.UniqueID}, table hash {pushInfo.TableHash} and record ID {pushInfo.RecordID} (started at {startPos}, currently at {hotfixMessage.BaseStream.Position})");
 
                         // Write the hotfix data to the stream.
                         hotfixData.Write(hotfixRow);
@@ -372,11 +374,11 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
                 var hotfixDataArray = hotfixData.ToArray();
 
-                Log.Message(LogType.Debug, $"Appending hotfix data of size {hotfixDataArray.Length} to packet");
-
                 hotfixMessage.Write(hotfixDataArray.Length);
                 hotfixMessage.Write(hotfixDataArray);
             }
+
+            Log.Message(LogType.Debug, $"Sent {availablePushes} to client");
 
             session.Send(ref hotfixMessage);
         }

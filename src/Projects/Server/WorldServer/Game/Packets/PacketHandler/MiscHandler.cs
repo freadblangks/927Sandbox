@@ -296,6 +296,21 @@ namespace AuthServer.Game.Packets.PacketHandler
             else
                 Log.Message(LogType.Info, $"Got hotfix request for {count} records of table {dbName}: {string.Join(", ", recordIDs)}");
 
+            foreach(var recordID in recordIDs)
+            {
+                var dbReply = new PacketWriter(ServerMessage.DBReply);
+                var bitPack = new BitPack(dbReply);
+                dbReply.Write(tableHash);
+                dbReply.Write(recordID);
+                dbReply.WriteUInt32((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+                bitPack.Write(3, 3);                    // Hotfix status
+                bitPack.Flush();
+
+                dbReply.Write(0);
+
+                session.Send(ref dbReply);
+            }
         }
 
         [Opcode(ClientMessage.HotfixRequest, "34003")]
@@ -305,10 +320,10 @@ namespace AuthServer.Game.Packets.PacketHandler
             var dataBuild = packet.ReadUInt32();
             var hotfixCount = packet.ReadUInt32();
 
-            var requestedHotfixes = new List<uint>();
+            var requestedHotfixes = new List<int>();
             for (var i = 0; i < hotfixCount; i++)
             {
-                var pushID = packet.ReadUInt32();
+                var pushID = packet.ReadInt32();
                 requestedHotfixes.Add(pushID);
             }
 
