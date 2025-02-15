@@ -282,26 +282,20 @@ namespace AuthServer.Game.Packets.PacketHandler
         [Opcode(ClientMessage.DBQueryBulk, "34003")]
         public static void HandleDBQueryBulk(ref PacketReader packet, WorldClass session)
         {
-            if (ReplayManager.GetInstance().Playing)
-            {
-                var bitUnpack = new BitUnpack(packet);
-                var tableHash = packet.ReadUInt32();
+            var bitUnpack = new BitUnpack(packet);
+            var tableHash = packet.ReadUInt32();
+            var count = bitUnpack.GetBits<uint>(13);
+            var recordIDs = new List<uint>();
+            for (var i = 0; i < count; i++)
+                recordIDs.Add(packet.ReadUInt32());
 
-                Log.Message(LogType.Info, $"Got hotfix request for table {tableHash:X}");
+            var dbName = WorldMgr.DBInfo.Where(x => x.Value.TableHash == tableHash).Select(x => x.Key).FirstOrDefault();
 
-                var count = bitUnpack.GetBits<int>(13);
+            if (string.IsNullOrEmpty(dbName))
+                Log.Message(LogType.Info, $"Got hotfix request for unknown table {tableHash:X}: {string.Join(", ", recordIDs)}");
+            else
+                Log.Message(LogType.Info, $"Got hotfix request for {count} records of table {dbName}: {string.Join(", ", recordIDs)}");
 
-                for (var i = 0; i < count; i++)
-                {
-                    var id = packet.ReadUInt32();
-
-#if DEBUG
-                    
-#endif
-                }
-            }
-
-            //Hotfix.SendHotfixMessage(session);
         }
 
         //[Opcode(ClientMessage.HotfixRequest, "34003")]
