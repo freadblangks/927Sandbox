@@ -400,73 +400,11 @@ namespace AuthServer.Game.Packets.PacketHandler
 
             session.Send(ref authResponse);
 
-            // Initialize available hotfixes.
-            var pkt = new PacketWriter(ServerMessage.AvailableHotfixes);
-            pkt.WriteUInt32(838926338);
-            pkt.WriteUInt32(0);
-            session.Send(ref pkt);
-
-            //Hotfix.SendHotfixReply(session);
-
-            //Hotfix.SendClearHotfixes(session);
-            // Send hotfixes
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE5000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF7A000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE9000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF49000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFEC000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF71000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFEE000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF7C000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFF1000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE8000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF70000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF5F000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF6D000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE6000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFEA000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF6F000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFEF000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF6E000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF6C000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF68000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF6B000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE7000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFED000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFE1000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDFF0000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF44000000082CD65B0000000000".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF43000000082CD65B801000000076583BDACD5257A3F73D1598A2CA2D99".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF47000000082CD65B8010000000972B6E74420EC519E6F9D97D594AA37C".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF4B000000082CD65B8010000000CD0C0FFAAD9363EC14DD25ECDD2A5B62".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF46000000082CD65B80100000009A89CC7E3ACB29CF14C60BC13B1E4616".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3D000000082CD65B80100000003832D7C42AAC9268F00BE7B6B48EC9AF".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF48000000082CD65B8010000000AB55AE1BF0C7C519AFF028C15610A45B".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3B000000082CD65B8010000000C6C5F6C7F735D7D94C87267FA4994D45".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3F000000082CD65B8010000000D83BBCB46CC438B17A48E76C4F5654A3".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF42000000082CD65B80100000004DD0DC82B101C80ABAC0A4D57E67F859".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3A000000082CD65B8010000000D1AC20FD14957FABC27196E9F6E7024A".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3C000000082CD65B801000000072A97A24A998E3A5500F3871F37628C0".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF3E000000082CD65B8010000000C2501A72654B96F86350C5A927962F7A".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF45000000082CD65B80100000008ACE8DB169E2F98AC36AD52C088E77C1".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF4A000000082CD65B8010000000946D5659F2FAF327C0B7EC828B748ADB".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF40000000082CD65B8010000000F0FDE1D29B274F6E7DBDB7FF815FE910".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9634); pkt.Write("CF532FDF41000000082CD65B8010000000857090D926BB28AEDA4BF028CACC4BA3".ToByteArray()); session.Send(ref pkt);
-            //pkt = new PacketWriter((ServerMessage)9637); pkt.Write("0500000007284CB9D9DD00008CCA00007E010000800931C83AF2DA00008CCA000002000000801122990FF2DA00008CCA00007E00000080562D697E711201008FCA00001300000080562D697E701201008FCA0000130000008024020000000000000000000000D9DD000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000B06000000000000000FFFF000000000000000000000000000000000000FFFF0000000000000000000000000000000000000001FFFF00000000FF0000000000000000FFFF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008B8BFFFFFFFFFFFFFFFF507650204576656E743A20426174746C6520666F72204E617A6A617461720000F2DA00008B8BD9DD000000000000FFFF000000000000000000000000FF000000000000000000000078000000000000000000000000000000000000000000000014717100000000000000000000000000000000000000701201000201F3000000320000000F0300000000000000040100000000000000000000000000".ToByteArray()); session.Send(ref pkt);
-
-            //Hotfix.SendAvailableHotfixes(session);
-            //Hotfix.SendClearHotfixes(session);
-            Hotfix.SendHotfixMessage(session);
-
-            // New Mount 830, 6mo sub
-            //pkt = new PacketWriter((ServerMessage)0x25A5); pkt.Write("CF532FDFF9000000082CD65B8010000000520421C1070D930C045516D231C9D442".ToByteArray()); session.Send(ref pkt);
-
-
+            Hotfix.SendAvailableHotfixes(session);
 
             // Only send these if the replay mode is disabled.
            
             {
-
                 //WorldMgr.SendHotfixes(session);
 
                 TimeHandler.HandleSetTimezoneInformation(ref session);
