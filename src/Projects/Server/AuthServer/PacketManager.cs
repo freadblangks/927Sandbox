@@ -15,15 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using AuthServer.Network;
 using AuthServer.WorldServer.Managers;
 using Framework.Constants.Misc;
 using Framework.Constants.Net;
 using Framework.Logging;
 using Framework.Network.Packets;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using AuthServer.Network;
 
 namespace AuthServer.WorldServer.Game.Packets
 {
@@ -100,6 +100,8 @@ namespace AuthServer.WorldServer.Game.Packets
 
             if (OpcodeHandlers.ContainsKey(reader.Opcode))
             {
+                //PacketLog.Write<ClientMessage>((ushort)reader.Opcode, reader.Storage, session.clientSocket.RemoteEndPoint);
+
                 Log.Message(LogType.Packet, "Opcode: {0} (0x{1:X}), Length: {2}", reader.Opcode, reader.Opcode, reader.Size);
                 OpcodeHandlers[reader.Opcode].Invoke(ref reader, session);
             }

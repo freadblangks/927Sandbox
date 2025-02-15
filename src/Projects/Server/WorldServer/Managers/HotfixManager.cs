@@ -29,6 +29,8 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
 
         public Dictionary<int, (uint UniqueID, uint TableHash, int RecordID)> Pushes { get; private set; } = [];
 
+        private List<int> ChangedPushesSinceLastHotfixMessage = [];
+
         private FileSystemWatcher hotfixDirWatcher;
 
         private int lastPushID;
@@ -246,6 +248,8 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
                             Pushes.Remove(push.Key);
 
                         Pushes.Add(lastPushID++, (crc, dbInfo.TableHash, (int)recordID));
+
+                        ChangedPushesSinceLastHotfixMessage.Add(lastPushID - 1);
                     }
 
                 }
@@ -341,6 +345,12 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             {
                 foreach (var pushID in RequestedPushIDs)
                 {
+                    if(!ChangedPushesSinceLastHotfixMessage.Contains(pushID))
+                    {
+                        Log.Message(LogType.Error, $"Client requested hotfix for {pushID}, but it was not changed since last hotfix message, skipping..");
+                        continue;
+                    }
+
                     if (Pushes.TryGetValue(pushID, out var pushInfo) && Hotfixes.TryGetValue(pushInfo.TableHash, out var tableRows) && tableRows.TryGetValue(pushInfo.RecordID, out var hotfixRow))
                     {
                         var startPos = hotfixMessage.BaseStream.Position;
@@ -381,6 +391,8 @@ namespace Arctium.WoW.Sandbox.Server.WorldServer.Managers
             Log.Message(LogType.Debug, $"Sent {availablePushes} to client");
 
             session.Send(ref hotfixMessage);
+
+            ChangedPushesSinceLastHotfixMessage.Clear();
         }
 
         public Dictionary<uint, GameObjectDisplayInfo> GameObjectFileHotfixes = new Dictionary<uint, GameObjectDisplayInfo>();

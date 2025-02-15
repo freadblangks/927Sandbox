@@ -123,6 +123,8 @@ namespace AuthServer.Network
                             recievedBytes -= length;
                             Buffer.BlockCopy(DataBuffer, length, DataBuffer, 0, recievedBytes);
 
+                            //PacketLog.Write<ClientMessage>((ushort)packet.Opcode, DataBuffer, clientSocket.RemoteEndPoint);
+
                             OnData();
                         }
                     }
