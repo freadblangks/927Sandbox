@@ -454,9 +454,7 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
 
         static uint sceneInstanceId = 0;
 
-#if PUBLIC == false
         [ChatCommand("scenepkg", "sceneId")]
-#endif
         public static void ScenePkg(string[] args, WorldClass session)
         {
             var sceneId = Command.Read<uint>(args, 1);
@@ -495,7 +493,6 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
             }
         }
 
-#if !PUBLIC
         [ChatCommand("cscene", "")]
         public static void CancelScene(string[] args, WorldClass session)
         {
@@ -542,11 +539,8 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
 
             ChatHandler.SendMessage(ref session, chatMessage);
         }
-#endif
 
-#if PUBLIC == false
         [ChatCommand("scene", "sceneId")]
-#endif
         public static void Scene(string[] args, WorldClass session)
         {
             var sceneId = Command.Read<uint>(args, 1);
@@ -568,9 +562,7 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
             session.Send(ref pkt);
         }
 
-#if PUBLIC == false
         [ChatCommand("wstate", "wstateId val")]
-#endif
         public static void WState(string[] args, WorldClass session)
         {
             var sceneId = Command.Read<uint>(args, 1);
@@ -2048,6 +2040,30 @@ namespace AuthServer.WorldServer.Game.Chat.Commands
             bp.Flush();
 
             session.Send(ref weather);
+        }
+
+        [ChatCommand("time", "Usage: !time #hour (#minute) (e.g. 13 for 13:00/1PM or 13 25 for 13:25/1:25PM)")]
+        public static void Time(string[] args, WorldClass session)
+        {
+            var hour = Command.Read<int>(args, 1);
+            var minute = 0;
+
+            if (args.Length == 3)
+                minute = Command.Read<int>(args, 2);
+
+            DateTime currentDate = DateTime.Now.AddHours((DateTime.Now.Hour * -1) + hour).AddMinutes((DateTime.Now.Minute * -1) + minute);
+
+            var newTime = Convert.ToUInt32((currentDate.Year - 2000) << 24 | (currentDate.Month - 1) << 20 | (currentDate.Day - 1) << 14 | (int)currentDate.DayOfWeek << 11 | currentDate.Hour << 6 | currentDate.Minute);
+            var time = Command.Read<int>(args, 1);
+
+            PacketWriter loginSetTimeSpeed = new PacketWriter(ServerMessage.LoginSetTimeSpeed);
+            loginSetTimeSpeed.WriteUInt32(newTime);
+            loginSetTimeSpeed.WriteUInt32(newTime);
+            loginSetTimeSpeed.WriteFloat(0.01666667f);
+            loginSetTimeSpeed.WriteInt32(0);
+            loginSetTimeSpeed.WriteInt32(0);
+
+            session.Send(ref loginSetTimeSpeed);
         }
     }
 }
